@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Українські Карпати - Трекер Вершин</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #2c5f2d;
+    --secondary-color: #99ba20;
+    --dark-bg: #1a1a1a;
+    --sidebar-bg: #2d2d2d;
+    --card-bg: #3a3a3a;
+    --text-light: #ffffff;
+    --text-muted: #b0b0b0;
+    --accent-red: #ff4444;
+    --accent-green: #44ff44;
+    --border-color: #4a4a4a;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: var(--dark-bg);
+    color: var(--text-light);
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 380px;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    border-right: 2px solid var(--border-color);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+    z-index: 1000;
+}
+
+.header {
+    padding: 20px;
+    background: linear-gradient(135deg, var(--primary-color), #1a4a1b);
+    border-bottom: 3px solid var(--secondary-color);
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header h1 i {
+    color: var(--secondary-color);
+}
+
+.header p {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* Stats */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 15px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #2c5f2d, #1f4420);
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--secondary-color);
+    display: block;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: 4px;
+}
+
+/* Search */
+.search-box {
+    padding: 15px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 40px 12px 15px;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-light);
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(151, 191, 4, 0.1);
+}
+
+.search-wrapper {
+    position: relative;
+}
+
+.search-wrapper i {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+/* Filter buttons */
+.filters {
+    padding: 10px 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.filter-btn {
+    padding: 8px 12px;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    color: var(--text-light);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.filter-btn:hover {
+    background: var(--primary-color);
+    border-color: var(--secondary-color);
+}
+
+.filter-btn.active {
+    background: var(--primary-color);
+    border-color: var(--secondary-color);
+    color: var(--secondary-color);
+}
+
+/* Peak List */
+.peak-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.peak-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.peak-list::-webkit-scrollbar-track {
+    background: var(--sidebar-bg);
+}
+
+.peak-list::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.peak-list::-webkit-scrollbar-thumb:hover {
+    background: var(--secondary-color);
+}
+
+.peak-item {
+    background: var(--card-bg);
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+    position: relative;
+}
+
+.peak-item:hover {
+    border-color: var(--secondary-color);
+    transform: translateX(5px);
+}
+
+.peak-item.visited {
+    opacity: 0.6;
+    background: linear-gradient(135deg, rgba(44, 95, 45, 0.3), rgba(26, 74, 27, 0.3));
+}
+
+.peak-item.visited::before {
+    content: '✓';
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 24px;
+    height: 24px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--dark-bg);
+}
+
+.peak-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--text-light);
+}
+
+.peak-item.visited .peak-name {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.peak-details {
+    display: flex;
+    gap: 15px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.peak-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.peak-detail-item i {
+    color: var(--secondary-color);
+}
+
+.no-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+}
+
+.no-results i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+/* Peak Details Panel */
+.peak-details-panel {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 15px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+        padding: 0 15px;
+    }
+    to {
+        opacity: 1;
+        max-height: 500px;
+        padding: 15px;
+    }
+}
+
+.peak-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.peak-details-header h3 {
+    font-size: 18px;
+    color: var(--text-light);
+    margin: 0;
+}
+
+.close-details {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 20px;
+    padding: 5px;
+    transition: color 0.3s;
+}
+
+.close-details:hover {
+    color: var(--accent-red);
+}
+
+.peak-details-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.detail-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.detail-row i {
+    color: var(--secondary-color);
+    width: 20px;
+}
+
+.detail-info {
+    background: rgba(151, 191, 4, 0.1);
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: 5px;
+}
+
+.detail-action-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.detail-action-btn:hover {
+    background: #1f4420;
+}
+
+.detail-action-btn.visited {
+    background: var(--accent-red);
+}
+
+.detail-action-btn.visited:hover {
+    background: #cc0000;
+}
+
+/* Photo Gallery */
+.photo-gallery {
+    margin-top: 15px;
+}
+
+.photo-gallery-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.photo-gallery-header h4 {
+    font-size: 14px;
+    color: var(--text-light);
+    margin: 0;
+}
+
+.add-photo-btn {
+    background: var(--secondary-color);
+    color: var(--dark-bg);
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.add-photo-btn:hover {
+    background: #b8d626;
+    transform: scale(1.05);
+}
+
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.photo-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.photo-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.photo-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.photo-delete {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(255, 68, 68, 0.9);
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 12px;
+}
+
+.photo-item:hover .photo-delete {
+    opacity: 1;
+}
+
+.photo-delete:hover {
+    background: rgba(255, 0, 0, 1);
+}
+
+.no-photos {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.photo-input {
+    display: none;
+}
+
+/* Photo Lightbox */
+.photo-lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.photo-lightbox.active {
+    display: flex;
+}
+
+.lightbox-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+
+.lightbox-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    object-fit: contain;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 32px;
+    cursor: pointer;
+    padding: 10px;
+}
+
+.lightbox-close:hover {
+    color: var(--accent-red);
+}
+
+/* Legend */
+.legend {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 15px;
+}
+
+.legend-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-header i {
+    color: var(--secondary-color);
+}
+
+.legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.legend-item:hover {
+    background: rgba(151, 191, 4, 0.1);
+    color: var(--text-light);
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 4px rgba(0,0,0,0.3);
+    flex-shrink: 0;
+}
+
+.legend-count {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--secondary-color);
+}
+
+/* Map */
+#map {
+    flex: 1;
+    height: 100vh;
+}
+
+/* Permanent Peak Labels */
+.leaflet-tooltip.peak-label {
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 2px solid;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    white-space: nowrap;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.leaflet-tooltip.peak-label::before {
+    border: none;
+}
+
+.peak-label-name {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 2px;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+}
+
+.peak-label-elevation {
+    display: block;
+    font-size: 10px;
+    opacity: 0.9;
+    font-weight: 600;
+}
+
+.leaflet-tooltip.peak-label:hover {
+    transform: scale(1.05);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.5);
+}
+
+.leaflet-tooltip.peak-label.visited {
+    background-color: rgba(200, 200, 200, 0.85);
+    opacity: 0.7;
+}
+
+/* Cluster styling */
+.marker-cluster {
+    background-color: rgba(44, 95, 45, 0.6);
+    border-radius: 50%;
+}
+
+.marker-cluster div {
+    background-color: rgba(44, 95, 45, 0.9);
+    width: 30px;
+    height: 30px;
+    margin-left: 5px;
+    margin-top: 5px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.marker-cluster span {
+    color: white;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.marker-cluster-small {
+    background-color: rgba(44, 95, 45, 0.6);
+}
+
+.marker-cluster-small div {
+    background-color: rgba(44, 95, 45, 0.9);
+}
+
+.marker-cluster-medium {
+    background-color: rgba(151, 191, 4, 0.6);
+}
+
+.marker-cluster-medium div {
+    background-color: rgba(151, 191, 4, 0.9);
+}
+
+.marker-cluster-large {
+    background-color: rgba(231, 76, 60, 0.6);
+}
+
+.marker-cluster-large div {
+    background-color: rgba(231, 76, 60, 0.9);
+}
+
+/* Custom Popup */
+.custom-popup {
+    min-width: 250px;
+}
+
+.popup-header {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--primary-color);
+}
+
+.popup-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.popup-detail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.popup-detail i {
+    color: var(--primary-color);
+    width: 20px;
+}
+
+.popup-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.popup-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.3s;
+}
+
+.popup-btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.popup-btn-primary:hover {
+    background: #1f4420;
+}
+
+.popup-btn-secondary {
+    background: var(--accent-red);
+    color: white;
+}
+
+.popup-btn-secondary:hover {
+    background: #cc0000;
+}
+
+/* Marker colors */
+.marker-unvisited {
+    filter: hue-rotate(0deg);
+}
+
+.marker-visited {
+    filter: grayscale(100%) opacity(50%);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        max-width: 100%;
+        position: absolute;
+        left: -100%;
+        transition: left 0.3s;
+        z-index: 2000;
+    }
+
+    .sidebar.open {
+        left: 0;
+    }
+
+    .mobile-toggle {
+        display: block;
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 1001;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+}
+
+.mobile-toggle {
+    display: none;
+}
+
+/* Loading */
+.loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 10000;
+}
+
+.spinner {
+    border: 4px solid var(--border-color);
+    border-top: 4px solid var(--secondary-color);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+</head>
+<body>
+<button class="mobile-toggle" onclick="toggleSidebar()">
+    <i class="fas fa-bars"></i>
+</button>
+
+<div class="container">
+    <div class="sidebar" id="sidebar">
+        <div class="header">
+            <h1><i class="fas fa-mountain"></i> Карпатські Вершини</h1>
+            <p>100 вершин + 22 полонини України</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-value" id="totalPeaks">122</span>
+                <span class="stat-label">Всього</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="visitedPeaks">0</span>
+                <span class="stat-label">Підкорено</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="progressPercent">0%</span>
+                <span class="stat-label">Прогрес</span>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <div class="search-wrapper">
+                <input type="text" class="search-input" id="searchInput" placeholder="Шукати вершину...">
+                <i class="fas fa-search"></i>
+            </div>
+        </div>
+
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">Всі</button>
+            <button class="filter-btn" data-filter="peaks">⛰️ Вершини</button>
+            <button class="filter-btn" data-filter="polonyny">🌿 Полонини</button>
+            <button class="filter-btn" data-filter="visited">Підкорені</button>
+            <button class="filter-btn" data-filter="unvisited">Не підкорені</button>
+        </div>
+
+        <div class="peak-details-panel" id="peakDetailsPanel" style="display: none;">
+            <div class="peak-details-header">
+                <h3 id="detailPeakName"></h3>
+                <button class="close-details" onclick="closePeakDetails()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="peak-details-content">
+                <div class="detail-row">
+                    <i class="fas fa-mountain"></i>
+                    <span><strong>Висота:</strong> <span id="detailElevation"></span> м</span>
+                </div>
+                <div class="detail-row">
+                    <i class="fas fa-layer-group"></i>
+                    <span><strong>Масив:</strong> <span id="detailRange"></span></span>
+                </div>
+                <div class="detail-row">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span><strong>Координати:</strong> <span id="detailCoords"></span></span>
+                </div>
+                <div class="detail-info" id="detailRangeInfo"></div>
+                <button class="detail-action-btn" id="detailToggleBtn" onclick="togglePeakFromDetails()">
+                    Позначити як підкорену
+                </button>
+
+                <div class="photo-gallery" id="photoGallery" style="display: none;">
+                    <div class="photo-gallery-header">
+                        <h4><i class="fas fa-camera"></i> Мої фото <span id="photoCount" style="opacity: 0.7; font-size: 11px;"></span></h4>
+                        <button class="add-photo-btn" onclick="triggerPhotoUpload()">
+                            <i class="fas fa-plus"></i> Додати
+                        </button>
+                    </div>
+                    <input type="file" id="photoInput" class="photo-input" accept="image/*" multiple onchange="handlePhotoUpload(event)">
+                    <div class="photo-grid" id="photoGrid"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="peak-list" id="peakList">
+        </div>
+    </div>
+
+    <div id="map"></div>
+</div>
+
+<!-- Photo Lightbox -->
+<div class="photo-lightbox" id="photoLightbox" onclick="closeLightbox()">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+        <button class="lightbox-close" onclick="closeLightbox()">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="lightboxImage" src="" alt="Peak photo">
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="js/peaks_data.js"></script>
+<script src="js/map.js"></script>
+</body>
+</html>
