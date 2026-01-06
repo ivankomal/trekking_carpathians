@@ -923,5 +923,48 @@ body {
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="js/peaks_data.js"></script>
 <script src="js/map.js"></script>
+
+<div style="position: fixed; bottom: 20px; left: 20px; z-index: 1000; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
+    <button id="test-firebase" style="cursor:pointer; padding: 8px;">🚩 Підкорити Говерлу (Тест)</button>
+</div>
+
+<script type="module">
+  // Імпортуємо необхідні функції
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+  // КОНФІГУРАЦІЯ (Вставте сюди СВОЇ дані з консолі Firebase!)
+  const firebaseConfig = {
+    apiKey: "AIzaSy...",
+    authDomain: "ваш-проєкт.firebaseapp.com",
+    projectId: "ваш-проєкт",
+    storageBucket: "ваш-проєкт.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
+  };
+
+  // Ініціалізація
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Функція для запису в базу
+  async function savePeak() {
+    try {
+      const docRef = await addDoc(collection(db, "peaks"), {
+        name: "Говерла",
+        status: "conquered",
+        date: serverTimestamp()
+      });
+      alert("Дані збережено в Firebase! ID документа: " + docRef.id);
+      console.log("Документ додано з ID: ", docRef.id);
+    } catch (e) {
+      alert("Помилка: " + e.message);
+      console.error("Помилка додавання: ", e);
+    }
+  }
+
+  // Прив'язка до кнопки
+  document.getElementById('test-firebase').addEventListener('click', savePeak);
+</script>
 </body>
 </html>

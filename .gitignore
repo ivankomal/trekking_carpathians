@@ -1,2 +1,14 @@
+# IDE (Налаштування редакторів)
 .vscode/
+.idea/
+
+# OS (Системні файли)
 .DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Node (якщо почнете використовувати npm)
+node_modules/
+dist/
